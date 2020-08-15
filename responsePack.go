@@ -2,6 +2,7 @@ package responsePack
 
 import (
 	"reflect"
+	"time"
 "github.com/kataras/iris/v12"
 )
 
@@ -18,6 +19,7 @@ import (
 
 type (
 	Response struct {
+		Timestamp int64  `json:"timestamp"` //生成时间
 		Code    int         `json:"code"`
 		Status  int         `json:"status"`
 		Message string      `json:"message"`
@@ -31,12 +33,25 @@ type (
 	}
 
 	Page struct {
-		Total      int `json:"total"`      //总记录数量
+		TotalRecord      int `json:"total"`      //总记录数量
 		TotalPages int `json:"totalPages"` //总页数
 		PageNo     int `json:"pageNo"`     //当前页号
 		PageSize   int `json:"pageSize"`   //每页数据量
 	}
 )
+
+func ParsePage(ctx iris.Context) *Page {
+	if ctx == nil || !ctx.URLParamExists("page_no") {
+		//无分页处理
+		return nil
+	}
+	return &Page{
+		TotalRecord: 0,
+		TotalPages: 0,
+		PageNo: ctx.URLParamIntDefault("page_no", 1),
+		PageSize:  ctx.URLParamIntDefault("page_size", 5),
+	}
+}
 
 func IsNil(i interface{}) bool {
 	vi := reflect.ValueOf(i)
@@ -101,8 +116,13 @@ func (r *Response) SetMsg(msg string) *Response {
 	return r
 }
 
+func (r *Response) SetPage(page *Page) *Response {
+	r.Data.Page = page
+	return r
+}
 
 func (r *Response) JSON(ctx iris.Context) {
+	r.Timestamp =  time.Now().Unix()
 	ctx.StatusCode(r.Code)
 	ctx.JSON(r)
 }
